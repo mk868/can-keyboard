@@ -24,8 +24,9 @@ The most challenging part was to debug CANBUS to find the frames responsible for
 Used components:
 
 - ESP32 devkit (38 pins)
-- MCP2551 CAN Transceiver (a chip with 3.3V logic, such as SN65HVD233, would be better)
+- SN65HVD230 CAN Transceiver
 
+// created with EasyEDA
 image::res/schematic.png[]
 
 

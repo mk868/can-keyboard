@@ -3,9 +3,12 @@
 
 #include "state_machine.h"
 #include "multimedia.h"
+#include "car_buttons.h"
 
 static void on_serial_receive();
 static void on_can_receive(int packetSize);
+
+static const int GREEN_LED = 23;
 
 void setup()
 {
@@ -31,6 +34,9 @@ void setup()
 
     delay(200);
     Serial.println("ready");
+
+    pinMode(GREEN_LED, OUTPUT);
+    digitalWrite(GREEN_LED, HIGH);
 }
 
 void loop()
@@ -38,21 +44,25 @@ void loop()
     state_t state = state_machine_get_state();
     if (state == STATE_PREV_TRACK)
     {
+        digitalWrite(GREEN_LED, LOW);
         multimedia_prev_track();
+        digitalWrite(GREEN_LED, HIGH);
     }
     if (state == STATE_NEXT_TRACK)
     {
+        digitalWrite(GREEN_LED, LOW);
         multimedia_next_track();
+        digitalWrite(GREEN_LED, HIGH);
     }
     if (state == STATE_RESTART)
     {
+        digitalWrite(GREEN_LED, LOW);
         ESP.restart();
     }
-
     state_machine_reset();
 }
 
-void on_serial_receive()
+static void on_serial_receive()
 {
     while (Serial.available())
     {
@@ -73,10 +83,7 @@ void on_serial_receive()
     }
 }
 
-const int CAN_PREV_TRACK[8] = {137, 1, 65, 162, 162, 162, 162, 162};
-const int CAN_NEXT_TRACK[8] = {137, 1, 1, 162, 162, 162, 162, 162};
-
-void on_can_receive(int packetSize)
+static void on_can_receive(int packetSize)
 {
     long id = CAN.packetId();
     int buff[packetSize];
@@ -95,15 +102,12 @@ void on_can_receive(int packetSize)
         return;
     }
 
-    if (id == 1423)
+    if (id == CAR_BUTTON_UP.packet_id && memcmp(CAR_BUTTON_UP.data, buff, sizeof(CAR_BUTTON_UP.data)) == 0)
     {
-        if (memcmp(CAN_PREV_TRACK, buff, sizeof(CAN_PREV_TRACK)) == 0)
-        {
-            state_machine_set_state_debouncing(STATE_PREV_TRACK);
-        }
-        if (memcmp(CAN_NEXT_TRACK, buff, sizeof(CAN_PREV_TRACK)) == 0)
-        {
-            state_machine_set_state_debouncing(STATE_NEXT_TRACK);
-        }
+        state_machine_set_state_debouncing(STATE_PREV_TRACK);
+    }
+    if (id == CAR_BUTTON_DOWN.packet_id && memcmp(CAR_BUTTON_DOWN.data, buff, sizeof(CAR_BUTTON_DOWN.data)) == 0)
+    {
+        state_machine_set_state_debouncing(STATE_NEXT_TRACK);
     }
 }
